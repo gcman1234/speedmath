@@ -36,6 +36,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 18px;
+  position: relative;          /* 作为屏内绝对定位元素（版本号等）的参照物 */
   padding: 24px 20px;
   padding-top: calc(24px + env(safe-area-inset-top));
   padding-bottom: calc(24px + env(safe-area-inset-bottom));
@@ -68,30 +69,35 @@ h2 { font-size: 22px; }
 
 /* 彩蛋：点 logo 后“立刻”飞到“岸”字正上方（左对齐，不居中） */
 .egg-line {
+  position: relative;         /* 作为“立刻”定位的参照物 */
   font-size: 13px;
   color: var(--text-light);
   white-space: nowrap;
   margin-bottom: -6px;
 }
-.egg-anchor {
-  position: relative;
-  display: inline-block;
-}
 .egg-fly {
-  position: absolute;
-  left: 0;
-  top: 0;
-  white-space: nowrap;
-  /* 常态：左移自身宽度，恰好停在“上”字左侧（读作“立刻上岸”） */
-  transform: translate(-100%, 0);
-  transition: transform 0.45s cubic-bezier(0.3, 1.3, 0.5, 1), font-size 0.3s ease, color 0.3s ease;
+  display: inline-block;      /* 常态：正常参与排版，插入在“按钮”与“上岸”之间 */
+  transition: left 0.45s cubic-bezier(0.3, 1.3, 0.5, 1),
+              top 0.45s cubic-bezier(0.3, 1.3, 0.5, 1),
+              font-size 0.3s ease, color 0.3s ease;
 }
 .egg-on .egg-fly {
-  /* 13px = 一个字符宽，对齐“岸”字左缘；-100% = 飞到行上方，叠在“岸”正上方 */
-  transform: translate(13px, -100%);
+  position: absolute;         /* 点击后脱离文档流，行内联重排为“点击下方按钮上岸” */
+  margin: 0;
+  white-space: nowrap;
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
+}
+
+/* 版本号（模块选择页右上角） */
+.app-version {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 5;
+  font-size: 12px;
+  color: var(--text-light);
 }
 
 .logo {
@@ -317,7 +323,7 @@ h2 { font-size: 22px; }
 }
 .row-no { color: #9aa89a; font-size: 16px; }
 .row-q { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-a { font-weight: 700; white-space: nowrap; }
+.row-a { font-weight: 700; white-space: nowrap; text-align: left; }
 .row-u { font-weight: 700; white-space: nowrap; text-align: right; }
 .row-u.good { color: var(--good); }
 .row-u.bad { color: var(--bad); }

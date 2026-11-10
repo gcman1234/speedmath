@@ -26,6 +26,9 @@ if (navigator.storage && navigator.storage.persist) {
 const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
+/* ---------- 版本号（显示在模块选择页右上角） ---------- */
+const VERSION = '0.7.0';
+
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
 let current = null;      // 当前题 { type, prompt, ... }
@@ -243,9 +246,10 @@ function renderResultList() {
     const row = document.createElement('div');
     row.className = 'result-row';
     const userText = h.user === '' ? '未作答×' : (h.good ? `${h.user}✓` : `${h.user}×`);
+    const promptText = h.prompt.replace(/=\s*$/, '').trim();   // 题目列去掉结尾的“=”，避免与正确答案列的“=”重复
     row.innerHTML =
       `<span class="row-no">${i + 1}</span>` +
-      `<span class="row-q">${h.prompt}</span>` +
+      `<span class="row-q">${promptText}</span>` +
       `<span class="row-a">= ${h.correct}</span>` +
       `<span class="row-u ${h.good ? 'good' : 'bad'}">${userText}</span>` +
       `<span class="row-t">${h.secs.toFixed(1)}s</span>`;
@@ -285,18 +289,53 @@ document.addEventListener('keydown', e => {
 });
 
 renderModules();
+$('app-version').textContent = 'v' + VERSION;
 
-/* ---------- 彩蛋：点"算"字方块，"立刻"飞到"岸"字上方 ---------- */
-$('logo').addEventListener('click', () => {
-  $('egg-line').classList.toggle('egg-on');
-  if (navigator.vibrate) navigator.vibrate(20);
-});
+/* ---------- 彩蛋：点"算"字方块，"立刻"飞到"岸"字正上方 ----------
+ * 两阶段定位：
+ *   常态——"立刻"是普通行内元素，正常插在"按钮"与"上岸"之间；
+ *   点击——先记录它的位置并切为绝对定位（文字随即重排为"点击下方按钮上岸"），
+ *          再测量"岸"字的新坐标，过渡动画飞过去；再点一次飞回并恢复行内。
+ */
+(function () {
+  const line = $('egg-line');
+  const fly = $('egg-fly');
+  const anchor = line.querySelector('.egg-anchor');
+
+  $('logo').addEventListener('click', () => {
+    if (navigator.vibrate) navigator.vibrate(20);
+
+    if (!line.classList.contains('egg-on')) {
+      // 记录常态位置（相对 egg-line）
+      fly.dataset.x = fly.offsetLeft;
+      fly.dataset.y = fly.offsetTop;
+      // 固定在原位并切绝对定位 → 脱离文档流，行重排
+      fly.style.left = fly.dataset.x + 'px';
+      fly.style.top = fly.dataset.y + 'px';
+      line.classList.add('egg-on');
+      // 下一帧测量"岸"字新位置，飞过去（左对齐岸字左缘，叠在其正上方）
+      requestAnimationFrame(() => {
+        fly.style.left = anchor.offsetLeft + 'px';
+        fly.style.top = (anchor.offsetTop - fly.offsetHeight - 2) + 'px';
+      });
+    } else {
+      // 飞回记录的常态位置，动画结束后恢复行内元素
+      fly.style.left = fly.dataset.x + 'px';
+      fly.style.top = fly.dataset.y + 'px';
+      setTimeout(() => {
+        line.classList.remove('egg-on');
+        fly.style.left = '';
+        fly.style.top = '';
+      }, 470);
+    }
+  });
+})();
 
 // 调试/测试入口：?autostart=<模块id> 直接进入答题（如 ?autostart=addition）
 // 追加 &autofinish=1 可自动随机作答跑完一局，用于核对结算页样式
 (function () {
   const params = new URLSearchParams(location.search);
-  if (params.get('egg')) $('egg-line').classList.add('egg-on');   // 彩蛋状态预览
+  if (params.get('egg')) $('logo').click();   // 彩蛋状态预览（走真实点击逻辑）
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
   startRound(target);
