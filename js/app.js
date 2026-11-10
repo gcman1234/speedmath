@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.7.0';
+const VERSION = '0.8.0';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -97,7 +97,7 @@ function startRound(m) {
 /* ---------- 出题 ---------- */
 function nextQuestion() {
   current = module.makeQuestion();
-  $('question-text').textContent = current.prompt;
+  renderQuestion();
   $('progress').textContent = `${qIndex + 1} / ${roundTotal}`;
   input = '';
   renderInput();
@@ -131,12 +131,36 @@ function correctText() {
     const c = current.options.find(o => o.correct);
     return c ? String(c.text) : '';
   }
-  return String(current.answer);
+  // 模块可自定义正确答案的显示文本（如百化分的 "1/1.43"）
+  return current.correctText ? String(current.correctText) : String(current.answer);
 }
 
-/* ---------- 输入渲染（答案内联在题干 "=" 后） ---------- */
+/* ---------- 题干渲染 ----------
+ * 普通模块：纯文本题干 + 内联答案区（"= 62"）
+ * 富文本模块：提供 promptHTML，可在其中放置 <span class="q-slot"> 作为输入占位
+ */
+function renderQuestion() {
+  const box = $('question');
+  if (current.promptHTML) {
+    box.innerHTML = current.promptHTML;
+    return;
+  }
+  box.textContent = '';
+  box.appendChild(document.createTextNode(current.prompt));
+  const ans = document.createElement('span');
+  ans.className = 'q-answer';
+  box.appendChild(ans);
+}
+
+/* ---------- 输入渲染（优先填入题干的 q-slot，否则内联在 "=" 后） ---------- */
 function renderInput() {
-  $('q-answer').textContent = input;
+  const slot = $('question').querySelector('.q-slot');
+  if (slot) {
+    slot.textContent = input || '?';
+    return;
+  }
+  const ans = $('question').querySelector('.q-answer');
+  if (ans) ans.textContent = input;
 }
 
 /* ---------- 键盘输入（仅键盘型题目） ---------- */
