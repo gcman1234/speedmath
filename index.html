@@ -27,6 +27,7 @@
     <!-- 答题页（布局高度还原参考图） -->
     <section id="screen-quiz" class="screen">
       <div class="quiz-top">
+        <button class="btn-quit" id="btn-quit" aria-label="退出">←</button>
         <span id="progress">1 / 10</span>
         <span class="timer">⏱ <span id="timer">0:00</span></span>
       </div>
@@ -67,13 +68,24 @@
       <div class="choices" id="choices"></div>
     </section>
 
-    <!-- 结算页 -->
+    <!-- 结算页（布局还原结算参考图） -->
     <section id="screen-result" class="screen">
       <h2 id="result-title">本局成绩</h2>
-      <div class="result-score" id="result-score">0 / 10</div>
-      <div class="result-detail" id="result-detail"></div>
-      <button class="btn btn-primary" id="btn-again">再来一局</button>
-      <button class="btn btn-secondary" id="btn-home">选择其他模块</button>
+      <p class="result-sub" id="result-sub"></p>
+      <div class="result-table-wrap">
+        <div class="result-row result-head">
+          <span class="row-no"></span>
+          <span>题目</span>
+          <span>正确答案</span>
+          <span>你的答案</span>
+          <span class="row-t"></span>
+        </div>
+        <div id="result-list"></div>
+      </div>
+      <div class="result-actions">
+        <button class="btn btn-key" id="btn-again">重来</button>
+        <button class="btn btn-key" id="btn-home">返回</button>
+      </div>
     </section>
 
   </main>

@@ -24,16 +24,19 @@ if (navigator.storage && navigator.storage.persist) {
 
 /* ---------- 小工具 ---------- */
 const $ = id => document.getElementById(id);
+const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 局内状态 ---------- */
-let module = null;      // 当前模块对象
-let current = null;     // 当前题 { type, prompt, ... }
-let qIndex = 0;         // 当前题号（0 起）
-let correctCount = 0;   // 本局答对数
-let roundTotal = 10;    // 本局总题数
-let roundStart = 0;     // 开局时间戳
-let timerId = null;     // 计时器句柄
-let input = '';         // 键盘输入缓冲（支持负数与小数）
+let module = null;       // 当前模块对象
+let current = null;      // 当前题 { type, prompt, ... }
+let qIndex = 0;          // 当前题号（0 起）
+let correctCount = 0;    // 本局答对数
+let roundTotal = 10;     // 本局总题数
+let roundStart = 0;      // 开局时间戳
+let timerId = null;      // 计时器句柄
+let questionStart = 0;   // 当前题开始时间戳（统计单题用时）
+let input = '';          // 键盘输入缓冲（支持负数与小数）
+let history = [];        // 本局每题记录 { prompt, correct, user, good, secs }
 
 /* ---------- 界面切换 ---------- */
 function show(id) {
@@ -68,8 +71,7 @@ function stopTimer() {
   if (timerId) { clearInterval(timerId); timerId = null; }
 }
 function updateTimer() {
-  const s = Math.floor((Date.now() - roundStart) / 1000);
-  $('timer').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  $('timer').textContent = fmtTime((Date.now() - roundStart) / 1000);
 }
 function elapsedSeconds() {
   return Math.floor((Date.now() - roundStart) / 1000);
@@ -81,6 +83,7 @@ function startRound(m) {
   qIndex = 0;
   correctCount = 0;
   input = '';
+  history = [];
   roundTotal = m.total || 10;
   $('feedback').className = 'feedback';
   show('screen-quiz');
@@ -95,6 +98,7 @@ function nextQuestion() {
   $('progress').textContent = `${qIndex + 1} / ${roundTotal}`;
   input = '';
   renderInput();
+  questionStart = Date.now();
 
   if (current.type === 'choice') {
     // 四选一：显示选项面板，隐藏键盘与"确定"钮（选项即答案）
@@ -107,7 +111,7 @@ function nextQuestion() {
       const b = document.createElement('button');
       b.className = 'choice';
       b.textContent = opt.text;
-      b.addEventListener('click', () => answer(opt.correct === true));
+      b.addEventListener('click', () => answer(opt.correct === true, opt.text));
       box.appendChild(b);
     });
   } else {
@@ -116,6 +120,15 @@ function nextQuestion() {
     $('keypad-wrap').style.display = '';
     $('btn-ok').style.display = '';
   }
+}
+
+/* ---------- 当前题正确答案（文本） ---------- */
+function correctText() {
+  if (current.type === 'choice') {
+    const c = current.options.find(o => o.correct);
+    return c ? String(c.text) : '';
+  }
+  return String(current.answer);
 }
 
 /* ---------- 输入渲染（答案内联在题干 "=" 后） ---------- */
@@ -150,12 +163,25 @@ function pressKey(k) {
 
 function submitKeypad() {
   if (!current || current.type === 'choice') return;
-  if (!input || input === '-') { flash('先输入答案哦'); return; }
-  answer(Number(input) === current.answer);
+  // 空输入（含只输入负号）允许提交：判负并直接进入下一题
+  if (!input || input === '-') {
+    answer(false, '');
+    return;
+  }
+  answer(Number(input) === current.answer, input);
 }
 
 /* ---------- 判题（两种题型共用入口） ---------- */
-function answer(good) {
+function answer(good, userText) {
+  // 记录本题（题目 / 正确答案 / 你的答案 / 对错 / 单题用时）
+  history.push({
+    prompt: current.prompt,
+    correct: correctText(),
+    user: userText || '',
+    good: good === true,
+    secs: (Date.now() - questionStart) / 1000
+  });
+
   if (good) {
     correctCount++;
     flash('✓ 正确！', true);
@@ -203,18 +229,45 @@ function flash(msg, good) {
 /* ---------- 结算 ---------- */
 function endRound() {
   stopTimer();
-  const secs = elapsedSeconds();
   $('result-title').textContent = module.name;
-  $('result-score').textContent = `${correctCount} / ${roundTotal}`;
-  $('result-detail').textContent = `用时 ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  $('result-sub').textContent =
+    `本次练习用时 ${fmtTime(elapsedSeconds())} · 答对 ${correctCount}/${roundTotal} · 加油！`;
+  renderResultList();
   show('screen-result');
 }
 
+function renderResultList() {
+  const list = $('result-list');
+  list.innerHTML = '';
+  history.forEach((h, i) => {
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    const userText = h.user === '' ? '未作答×' : (h.good ? `${h.user}✓` : `${h.user}×`);
+    row.innerHTML =
+      `<span class="row-no">${i + 1}</span>` +
+      `<span class="row-q">${h.prompt}</span>` +
+      `<span class="row-a">= ${h.correct}</span>` +
+      `<span class="row-u ${h.good ? 'good' : 'bad'}">${userText}</span>` +
+      `<span class="row-t">${h.secs.toFixed(1)}s</span>`;
+    list.appendChild(row);
+  });
+}
+
+/* ---------- 退出本局（放弃计算，回主页面） ---------- */
+function quitRound() {
+  stopTimer();
+  input = '';
+  history = [];
+  renderModules();
+  show('screen-modules');
+}
+
 /* ---------- 事件绑定 ---------- */
+$('btn-quit').addEventListener('click', quitRound);                     // 答题页退出
 $('btn-restart').addEventListener('click', () => startRound(module));   // 重开：新题 + 计时归零
 $('btn-ok').addEventListener('click', submitKeypad);
-$('btn-again').addEventListener('click', () => startRound(module));
-$('btn-home').addEventListener('click', () => { stopTimer(); renderModules(); show('screen-modules'); });
+$('btn-again').addEventListener('click', () => startRound(module));     // 结算页：重来
+$('btn-home').addEventListener('click', quitRound);                     // 结算页：返回
 
 document.querySelectorAll('.key').forEach(btn => {
   btn.addEventListener('click', () => pressKey(btn.dataset.k));
@@ -234,8 +287,21 @@ document.addEventListener('keydown', e => {
 renderModules();
 
 // 调试/测试入口：?autostart=<模块id> 直接进入答题（如 ?autostart=addition）
+// 追加 &autofinish=1 可自动随机作答跑完一局，用于核对结算页样式
 (function () {
-  const id = new URLSearchParams(location.search).get('autostart');
-  const target = AppModules.find(m => m.id === id);
-  if (target) startRound(target);
+  const params = new URLSearchParams(location.search);
+  const target = AppModules.find(m => m.id === params.get('autostart'));
+  if (!target) return;
+  startRound(target);
+  if (params.get('autofinish')) {
+    const t = setInterval(() => {
+      if (!$('screen-quiz').classList.contains('active')) { clearInterval(t); return; }
+      if (Math.random() < 0.25) {
+        pressKey('ok');   // 1/4 概率空输入直接过题（未作答）
+      } else {
+        pressKey(String(Math.floor(Math.random() * 10)));
+        pressKey('ok');
+      }
+    }, 300);
+  }
 })();
