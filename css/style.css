@@ -73,17 +73,22 @@ h2 { font-size: 22px; }
   white-space: nowrap;
   margin-bottom: -6px;
 }
-.egg-fly {
+.egg-anchor {
+  position: relative;
   display: inline-block;
+}
+.egg-fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  /* 常态：左移自身宽度，恰好停在“上”字左侧（读作“立刻上岸”） */
+  transform: translate(-100%, 0);
   transition: transform 0.45s cubic-bezier(0.3, 1.3, 0.5, 1), font-size 0.3s ease, color 0.3s ease;
 }
-.egg-anchor { display: inline-block; }
-.egg-on .egg-anchor { position: relative; }
 .egg-on .egg-fly {
-  position: absolute;
-  bottom: 100%;
-  left: 0;                    /* 与“岸”字左对齐，叠在其正上方 */
-  transform: translateY(-2px);
+  /* 13px = 一个字符宽，对齐“岸”字左缘；-100% = 飞到行上方，叠在“岸”正上方 */
+  transform: translate(13px, -100%);
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
