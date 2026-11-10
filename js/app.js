@@ -15,6 +15,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- 申请持久化存储：系统承诺不自动清除本应用缓存 ---------- */
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().then(granted => {
+    if (granted) console.log('存储已设为持久化，缓存不会被系统自动清理');
+  }).catch(() => { /* 不支持时静默忽略 */ });
+}
+
 /* ---------- 小工具 ---------- */
 const $ = id => document.getElementById(id);
 
