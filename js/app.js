@@ -286,10 +286,17 @@ document.addEventListener('keydown', e => {
 
 renderModules();
 
+/* ---------- 彩蛋：点"算"字方块，"立刻"飞到"岸"字上方 ---------- */
+$('logo').addEventListener('click', () => {
+  $('egg-line').classList.toggle('egg-on');
+  if (navigator.vibrate) navigator.vibrate(20);
+});
+
 // 调试/测试入口：?autostart=<模块id> 直接进入答题（如 ?autostart=addition）
 // 追加 &autofinish=1 可自动随机作答跑完一局，用于核对结算页样式
 (function () {
   const params = new URLSearchParams(location.search);
+  if (params.get('egg')) $('egg-line').classList.add('egg-on');   // 彩蛋状态预览
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
   startRound(target);
