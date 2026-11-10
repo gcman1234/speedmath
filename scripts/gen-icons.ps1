@@ -23,8 +23,8 @@ function New-AppIcon {
     $rect = New-Object System.Drawing.RectangleF(0, 0, $Size, $Size)
     $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
         $rect,
-        [System.Drawing.Color]::FromArgb(255, 79, 70, 229),
-        [System.Drawing.Color]::FromArgb(255, 124, 58, 237),
+        [System.Drawing.Color]::FromArgb(255, 107, 191, 107),
+        [System.Drawing.Color]::FromArgb(255, 62, 142, 78),
         135
     )
 

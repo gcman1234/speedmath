@@ -1,21 +1,24 @@
-/* ===== 速算练习 - 演示版样式 ===== */
+/* ===== 速算练习 · 全局浅绿主题（配色采样自参考布局） ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg1: #4f46e5;
-  --bg2: #7c3aed;
-  --card: #ffffff;
-  --text: #1e293b;
-  --text-light: #64748b;
-  --good: #16a34a;
-  --bad: #dc2626;
+  --bg: #EBF7EB;          /* 页面背景 */
+  --panel: #C3D6C3;       /* 键盘面板 */
+  --key: #BCE2BB;         /* 键盘按键 */
+  --key-active: #A5D6A5;  /* 按键按下 */
+  --card: #FBFDFA;        /* 卡片 / 圆钮 */
+  --text: #212b21;        /* 主文字（近黑） */
+  --text-light: #5f6f5f;  /* 次要文字 */
+  --accent: #33553a;      /* 强调色（深绿） */
+  --good: #15803d;
+  --bad: #b91c1c;
 }
 
 html, body {
   height: 100%;
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   color: var(--text);
-  background: linear-gradient(160deg, var(--bg1), var(--bg2));
+  background: var(--bg);
   overscroll-behavior: none;
 }
 
@@ -33,29 +36,45 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 32px 24px;
-  padding-top: calc(32px + env(safe-area-inset-top));
-  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  padding: 24px 20px;
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
   text-align: center;
   width: 100%;
 }
 .screen.active { display: flex; }
 
-/* 首页 */
+/* 通用文字 */
+h1 { font-size: 30px; letter-spacing: 2px; color: var(--text); }
+h2 { font-size: 22px; }
+.subtitle { font-size: 15px; color: var(--text-light); }
+
+/* 按钮 */
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 15px 48px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--card); color: var(--accent); }
+
+/* ========== 模块选择页 ========== */
 .logo {
-  width: 96px; height: 96px;
+  width: 88px; height: 88px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  color: #fff;
-  font-size: 52px;
+  background: var(--card);
+  color: var(--accent);
+  font-size: 46px;
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(51, 85, 58, 0.12);
 }
-h1 { color: #fff; font-size: 30px; letter-spacing: 2px; }
-.subtitle { color: rgba(255, 255, 255, 0.8); font-size: 15px; }
-
-/* 模块卡片网格 */
 .module-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -67,7 +86,8 @@ h1 { color: #fff; font-size: 30px; letter-spacing: 2px; }
 .module-card {
   border: none;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--card);
+  box-shadow: 0 4px 14px rgba(51, 85, 58, 0.10);
   padding: 22px 14px 18px;
   display: flex;
   flex-direction: column;
@@ -78,138 +98,145 @@ h1 { color: #fff; font-size: 30px; letter-spacing: 2px; }
   transition: transform 0.08s ease;
 }
 .module-card:active { transform: scale(0.96); }
-.module-icon { font-size: 36px; }
-.module-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.module-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: var(--key);
+  font-size: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.module-name { font-size: 16px; font-weight: 700; }
 .module-desc { font-size: 12px; color: var(--text-light); line-height: 1.5; }
 
-/* 按钮 */
-.btn {
-  border: none;
-  border-radius: 14px;
-  padding: 15px 48px;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.btn:active { transform: scale(0.96); }
-.btn-primary {
-  background: #fff;
-  color: var(--bg1);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-}
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
+/* ========== 答题页 ========== */
+#screen-quiz { justify-content: flex-start; }
 
-/* 答题页 */
 .quiz-top {
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 14px;
-}
-.btn-quit {
-  border: none;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-.btn-quit:active { background: rgba(255, 255, 255, 0.32); }
-.question {
-  color: #fff;
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  margin-top: 10px;
-}
-.answer {
-  min-width: 160px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px dashed rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
-  color: #fff;
-  font-size: 36px;
-  font-weight: 700;
-  padding: 10px 24px;
-}
-.feedback {
-  height: 28px;
   font-size: 17px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
+}
+.timer { display: inline-flex; align-items: center; gap: 4px; }
+
+/* 题干区：占据中部剩余空间并垂直居中 */
+.question-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+.question {
+  font-size: clamp(36px, 10vw, 48px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.q-answer { color: var(--accent); min-width: 1ch; }
+
+.feedback {
+  height: 26px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-light);
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 .feedback.show { opacity: 1; }
-.feedback.good { color: #86efac; }
-.feedback.bad { color: #fecaca; }
+.feedback.good { color: var(--good); }
+.feedback.bad { color: var(--bad); }
 
-/* 数字键盘 */
+/* 评级线（预留占位） */
+.grade-line {
+  min-height: 24px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* 重开 / 确定 圆钮 */
+.action-row {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 6px;
+}
+.round-btn {
+  width: 86px; height: 86px;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(51, 85, 58, 0.12);
+  transition: transform 0.07s ease;
+  user-select: none;
+}
+.round-btn:active { transform: scale(0.93); }
+
+/* 键盘面板（固定布局，不可拖动） */
+.keypad-wrap {
+  width: 100%;
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px;
+}
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  width: 100%;
-  max-width: 320px;
-  margin-top: 6px;
+  gap: 10px;
 }
 .key {
   border: none;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text);
-  font-size: 24px;
+  border-radius: 12px;
+  background: var(--key);
+  color: var(--accent);
+  font-size: 22px;
   font-weight: 600;
   font-family: inherit;
-  padding: 16px 0;
+  padding: 15px 0;
   cursor: pointer;
   transition: transform 0.06s ease, background 0.06s ease;
   user-select: none;
 }
-.key:active { transform: scale(0.93); background: #e0e7ff; }
-.key-util { background: rgba(255, 255, 255, 0.55); color: var(--bg1); }
+.key:active { transform: scale(0.94); background: var(--key-active); }
 
-/* 四选一选项 */
+/* 四选一选项（选择题模块用） */
 .choices {
   display: none;               /* 由 JS 切换 */
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   width: 100%;
-  max-width: 320px;
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px;
 }
 .choice {
   border: none;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text);
+  border-radius: 12px;
+  background: var(--key);
+  color: var(--accent);
   font-size: 19px;
   font-weight: 600;
   font-family: inherit;
-  padding: 18px 8px;
+  padding: 20px 8px;
   cursor: pointer;
-  transition: transform 0.06s ease;
+  transition: transform 0.06s ease, background 0.06s ease;
   user-select: none;
 }
-.choice:active { transform: scale(0.95); }
-.choice-correct {
-  background: #86efac;
-  color: #14532d;
-}
+.choice:active { transform: scale(0.95); background: var(--key-active); }
+.choice-correct { background: var(--key-active); outline: 2px solid var(--accent); }
 
-/* 结算页 */
-h2 { color: #fff; font-size: 22px; }
-.result-score {
-  color: #fff;
-  font-size: 64px;
-  font-weight: 800;
-}
-.result-detail { color: rgba(255, 255, 255, 0.85); font-size: 15px; min-height: 22px; }
+/* ========== 结算页 ========== */
+.result-score { font-size: 60px; font-weight: 800; color: var(--accent); }
+.result-detail { font-size: 15px; color: var(--text-light); min-height: 22px; }
