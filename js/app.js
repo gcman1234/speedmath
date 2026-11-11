@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.8.1';
+const VERSION = '0.9.0';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -213,7 +213,11 @@ function submitKeypad() {
     answer(false, '');
     return;
   }
-  answer(Number(input) === current.answer, input);
+  // 模块可声明 check(数值) 自定义判题（如百化分估算的区间判定），否则精确比较
+  const good = typeof current.check === 'function'
+    ? current.check(Number(input))
+    : Number(input) === current.answer;
+  answer(good, input);
 }
 
 /* ---------- 判题（两种题型共用入口） ---------- */

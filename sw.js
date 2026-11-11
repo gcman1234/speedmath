@@ -6,7 +6,7 @@
  * 手机下次联网打开时会自动更新缓存。
  * ============================================================ */
 
-const CACHE_NAME = 'speedmath-v10';
+const CACHE_NAME = 'speedmath-v11';
 
 const ASSETS = [
   './',
@@ -16,6 +16,7 @@ const ASSETS = [
   './js/modules/registry.js',
   './js/modules/addition.js',
   './js/modules/baihuafen.js',
+  './js/modules/baihuafen-est.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
