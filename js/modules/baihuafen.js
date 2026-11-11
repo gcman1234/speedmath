@@ -36,6 +36,13 @@ registerModule({
   desc: '百分数化分数，43 组对照',
   total: 10,                       // 每局题数
 
+  /* 查表附表：由题库生成，保证与考题绝对一致。
+   * 声明后答题页右侧圆钮变为"查表"，点击弹出对照表（查表期间计时暂停）。 */
+  cheatSheet: {
+    title: '百化分对照表',
+    rows: BAIHUAFEN_BANK.map(e => [e[0], `1/${e[1]}`])
+  },
+
   makeQuestion() {
     const item = baihuafenDraw();
     const pct = item[0];

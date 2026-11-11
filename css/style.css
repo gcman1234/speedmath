@@ -346,6 +346,67 @@ h2 { font-size: 22px; }
 .row-u.bad { color: var(--bad); }
 .row-t { color: #9aa89a; font-size: 13px; text-align: right; }
 
+/* 右侧圆钮为"查表"时的样式（与"确定"区分） */
+.round-btn.btn-cheat {
+  background: var(--key);
+  color: var(--accent);
+}
+
+/* 查表弹层 */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 50, 35, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+.sheet-overlay.show { display: flex; }
+.sheet-card {
+  background: var(--card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 16px;
+  box-shadow: 0 12px 40px rgba(30, 50, 35, 0.25);
+}
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  padding-bottom: 10px;
+}
+.sheet-close {
+  width: 34px; height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: var(--key);
+  color: var(--accent);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sheet-close:active { background: var(--key-active); }
+.sheet-cols {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 22px;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.sheet-table td { padding: 8px 2px; border-bottom: 1px solid rgba(51, 85, 58, 0.10); white-space: nowrap; }
+.sheet-table .sheet-a { text-align: right; font-weight: 600; color: var(--accent); }
+.sheet-foot { margin-top: 14px; }
+
 .result-actions {
   width: 100%;
   display: flex;

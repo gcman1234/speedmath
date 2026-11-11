@@ -92,6 +92,18 @@
 
   </main>
 
+  <!-- 查表弹层（模块声明 cheatSheet 时，答题页右侧圆钮变为"查表"） -->
+  <div class="sheet-overlay" id="sheet-overlay">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <span id="sheet-title">对照表</span>
+        <button class="sheet-close" id="sheet-close" aria-label="关闭">✕</button>
+      </div>
+      <div class="sheet-cols" id="sheet-cols"></div>
+      <button class="btn btn-key sheet-foot" id="sheet-confirm">关闭</button>
+    </div>
+  </div>
+
   <!-- 模块注册表（必须先加载） -->
   <script src="js/modules/registry.js"></script>
   <!-- 练习模块：新增模块时在下方添加一行 <script src="js/modules/xxx.js"></script> -->

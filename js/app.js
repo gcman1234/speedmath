@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.8.0';
+const VERSION = '0.8.1';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -40,6 +40,9 @@ let timerId = null;      // 计时器句柄
 let questionStart = 0;   // 当前题开始时间戳（统计单题用时）
 let input = '';          // 键盘输入缓冲（支持负数与小数）
 let history = [];        // 本局每题记录 { prompt, correct, user, good, secs }
+let sheetOpen = false;   // 查表弹层是否打开
+let sheetPausedAt = 0;   // 查表暂停开始时间戳
+let rightBtnMode = 'ok'; // 右侧圆钮当前功能：'ok' 确定 | 'cheat' 查表
 
 /* ---------- 界面切换 ---------- */
 function show(id) {
@@ -75,6 +78,11 @@ function stopTimer() {
 }
 function updateTimer() {
   $('timer').textContent = fmtTime((Date.now() - roundStart) / 1000);
+}
+function resumeTimer() {
+  stopTimer();
+  updateTimer();
+  timerId = setInterval(updateTimer, 1000);
 }
 function elapsedSeconds() {
   return Math.floor((Date.now() - roundStart) / 1000);
@@ -122,6 +130,16 @@ function nextQuestion() {
     $('choices').style.display = 'none';
     $('keypad-wrap').style.display = '';
     $('btn-ok').style.display = '';
+    // 右侧圆钮：模块声明了附表 → "查表"；否则 → "确定"
+    if (module.cheatSheet) {
+      rightBtnMode = 'cheat';
+      $('btn-ok').textContent = '查表';
+      $('btn-ok').classList.add('btn-cheat');
+    } else {
+      rightBtnMode = 'ok';
+      $('btn-ok').textContent = '确定';
+      $('btn-ok').classList.remove('btn-cheat');
+    }
   }
 }
 
@@ -281,9 +299,58 @@ function renderResultList() {
   });
 }
 
+/* ---------- 查表弹层 ---------- */
+function openSheet() {
+  if (sheetOpen || !module || !module.cheatSheet) return;
+  renderCheatSheet();
+  $('sheet-overlay').classList.add('show');
+  sheetOpen = true;
+  stopTimer();                 // 查表期间计时暂停
+  sheetPausedAt = Date.now();
+}
+
+function closeSheet() {
+  if (!sheetOpen) return;
+  $('sheet-overlay').classList.remove('show');
+  sheetOpen = false;
+  // 补偿暂停时长：总用时与单题用时都不含查表时间
+  const paused = Date.now() - sheetPausedAt;
+  roundStart += paused;
+  questionStart += paused;
+  resumeTimer();
+}
+
+function renderCheatSheet() {
+  const cs = module.cheatSheet;
+  $('sheet-title').textContent = cs.title || '对照表';
+  const half = Math.ceil(cs.rows.length / 2);
+  const wrap = $('sheet-cols');
+  wrap.innerHTML = '';
+  [cs.rows.slice(0, half), cs.rows.slice(half)].forEach(col => {
+    const t = document.createElement('table');
+    t.className = 'sheet-table';
+    col.forEach(r => {
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      td1.textContent = r[0];
+      const td2 = document.createElement('td');
+      td2.className = 'sheet-a';
+      td2.textContent = '= ' + r[1];
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      t.appendChild(tr);
+    });
+    wrap.appendChild(t);
+  });
+}
+
 /* ---------- 退出本局（放弃计算，回主页面） ---------- */
 function quitRound() {
   stopTimer();
+  if (sheetOpen) {             // 弹层未关时直接退出：关掉弹层且不恢复计时
+    $('sheet-overlay').classList.remove('show');
+    sheetOpen = false;
+  }
   input = '';
   history = [];
   renderModules();
@@ -293,7 +360,15 @@ function quitRound() {
 /* ---------- 事件绑定 ---------- */
 $('btn-quit').addEventListener('click', quitRound);                     // 答题页退出
 $('btn-restart').addEventListener('click', () => startRound(module));   // 重开：新题 + 计时归零
-$('btn-ok').addEventListener('click', submitKeypad);
+$('btn-ok').addEventListener('click', () => {                           // 右侧圆钮：确定 或 查表
+  if (rightBtnMode === 'cheat') openSheet();
+  else submitKeypad();
+});
+$('sheet-close').addEventListener('click', closeSheet);                 // 查表弹层：✕ / 关闭 / 点遮罩
+$('sheet-confirm').addEventListener('click', closeSheet);
+$('sheet-overlay').addEventListener('click', e => {
+  if (e.target === $('sheet-overlay')) closeSheet();
+});
 $('btn-again').addEventListener('click', () => startRound(module));     // 结算页：重来
 $('btn-home').addEventListener('click', quitRound);                     // 结算页：返回
 
@@ -363,6 +438,7 @@ $('app-version').textContent = 'v' + VERSION;
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
   startRound(target);
+  if (params.get('cheat')) openSheet();   // 查表弹层预览
   if (params.get('autofinish')) {
     const t = setInterval(() => {
       if (!$('screen-quiz').classList.contains('active')) { clearInterval(t); return; }
