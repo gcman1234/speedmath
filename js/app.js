@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.9.0';
+const VERSION = '0.9.1';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -43,6 +43,8 @@ let history = [];        // 本局每题记录 { prompt, correct, user, good, se
 let sheetOpen = false;   // 查表弹层是否打开
 let sheetPausedAt = 0;   // 查表暂停开始时间戳
 let rightBtnMode = 'ok'; // 右侧圆钮当前功能：'ok' 确定 | 'cheat' 查表
+/* 精确模式（仅声明了 strictMode 的模块显示开关；状态本地持久化，跨局记住） */
+let strictMode = localStorage.getItem('sm_strict') === '1';
 
 /* ---------- 界面切换 ---------- */
 function show(id) {
@@ -112,9 +114,10 @@ function nextQuestion() {
   questionStart = Date.now();
 
   if (current.type === 'choice') {
-    // 四选一：显示选项面板，隐藏键盘与"确定"钮（选项即答案）
+    // 四选一：显示选项面板，隐藏键盘、"确定"钮与精确模式开关（选项即答案）
     $('keypad-wrap').style.display = 'none';
     $('btn-ok').style.display = 'none';
+    $('btn-strict').style.display = 'none';
     const box = $('choices');
     box.style.display = 'grid';
     box.innerHTML = '';
@@ -140,7 +143,20 @@ function nextQuestion() {
       $('btn-ok').textContent = '确定';
       $('btn-ok').classList.remove('btn-cheat');
     }
+    // 精确模式开关：仅模块声明 strictMode 时显示
+    if (module.strictMode) {
+      $('btn-strict').style.display = '';
+      renderStrictBtn();
+    } else {
+      $('btn-strict').style.display = 'none';
+    }
   }
+}
+
+/* ---------- 精确模式开关 ---------- */
+function renderStrictBtn() {
+  $('btn-strict').textContent = strictMode ? '精确模式·开' : '精确模式';
+  $('btn-strict').classList.toggle('on', strictMode);
 }
 
 /* ---------- 当前题正确答案（文本） ---------- */
@@ -213,9 +229,9 @@ function submitKeypad() {
     answer(false, '');
     return;
   }
-  // 模块可声明 check(数值) 自定义判题（如百化分估算的区间判定），否则精确比较
+  // 模块可声明 check(数值, ctx) 自定义判题（如百化分估算的区间判定），否则精确比较
   const good = typeof current.check === 'function'
-    ? current.check(Number(input))
+    ? current.check(Number(input), { strict: strictMode })
     : Number(input) === current.answer;
   answer(good, input);
 }
@@ -236,9 +252,14 @@ function answer(good, userText) {
     flash('✓ 正确！', true);
   } else {
     if (navigator.vibrate) navigator.vibrate(150);
-    flash(current.type === 'keypad'
+    // 模块可声明 wrongHint(数值, ctx) 给出针对性错因（如精确模式的端点提示）
+    const hint = (current.type === 'keypad' && userText !== '' &&
+      typeof current.wrongHint === 'function')
+      ? current.wrongHint(Number(userText), { strict: strictMode })
+      : null;
+    flash(hint || (current.type === 'keypad'
       ? `✗ 正确答案：${current.answer}`
-      : '✗ 正确答案已标出');
+      : '✗ 正确答案已标出'));
     if (current.type === 'choice') {
       // 标出正确选项
       document.querySelectorAll('#choices .choice').forEach((b, i) => {
@@ -364,6 +385,11 @@ function quitRound() {
 /* ---------- 事件绑定 ---------- */
 $('btn-quit').addEventListener('click', quitRound);                     // 答题页退出
 $('btn-restart').addEventListener('click', () => startRound(module));   // 重开：新题 + 计时归零
+$('btn-strict').addEventListener('click', () => {                       // 精确模式开关（跨局记住）
+  strictMode = !strictMode;
+  localStorage.setItem('sm_strict', strictMode ? '1' : '0');
+  renderStrictBtn();
+});
 $('btn-ok').addEventListener('click', () => {                           // 右侧圆钮：确定 或 查表
   if (rightBtnMode === 'cheat') openSheet();
   else submitKeypad();
@@ -442,6 +468,7 @@ $('app-version').textContent = 'v' + VERSION;
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
   startRound(target);
+  if (params.get('strict')) { strictMode = true; renderStrictBtn(); }   // 精确模式预览
   if (params.get('cheat')) openSheet();   // 查表弹层预览
   if (params.get('autofinish')) {
     const t = setInterval(() => {

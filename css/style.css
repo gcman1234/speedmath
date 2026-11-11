@@ -352,6 +352,27 @@ h2 { font-size: 22px; }
   color: var(--accent);
 }
 
+/* 精确模式开关（仅声明了 strictMode 的模块显示；夹在两个圆钮中间） */
+.btn-strict {
+  border: 1.5px solid rgba(51, 85, 58, 0.35);
+  background: var(--card);
+  color: var(--text-light);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+.btn-strict.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.btn-strict:active { transform: scale(0.93); }
+
 /* 查表弹层 */
 .sheet-overlay {
   position: fixed;

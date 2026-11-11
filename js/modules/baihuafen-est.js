@@ -44,6 +44,7 @@ registerModule({
   icon: '🎯',
   desc: '随机百分数，区间判分',
   total: 10,                       // 每局题数
+  strictMode: true,                // 声明支持"精确模式"（开区间判分）
 
   /* 与背诵模块同款对照表（查表按钮 + 弹层） */
   cheatSheet: {
@@ -54,17 +55,32 @@ registerModule({
   makeQuestion() {
     const pct = bhfEstRand();
     const [dlo, dhi] = bhfEstRange(pct);
+    const exact = dlo === dhi;     // 恰好命中题库原题（单点）
     const pctStr = String(pct);    // 6.3 / 47 / 90 等
-    const rangeText = dlo === dhi ? String(dlo) : `${dlo} ~ ${dhi}`;
+    const rangeText = exact ? String(dlo) : `${dlo} ~ ${dhi}`;
     // 分数区间按从小到大排列：1/大分母 ~ 1/小分母（如 1/2.2 ~ 1/2）
-    const fracText = dlo === dhi ? `1/${dlo}` : `1/${dhi} ~ 1/${dlo}`;
+    const fracText = exact ? `1/${dlo}` : `1/${dhi} ~ 1/${dlo}`;
     return {
       type: 'keypad',
       prompt: `${pctStr}% ≈ 1/( )`,   // 结算页纯文本
       correctText: fracText,          // 结算页"正确答案"列
       answer: rangeText,              // 答错提示显示："✗ 正确答案：2 ~ 2.2"
-      check(v) {                      // 区间判分（外壳钩子）
+      /* 区间判分（外壳钩子）。
+       * ctx.strict = 精确模式：
+       *   区间题改开区间 (lo, hi)，只有端点本身判错（lo+0.05 等对）；
+       *   命中原题的单点题例外：两种模式都为"等于该分母 ±0.01"。 */
+      check(v, ctx) {
+        if (exact) return Math.abs(v - dlo) <= BHF_EST_TOL;
+        if (ctx && ctx.strict) return v > dlo + 1e-9 && v < dhi - 1e-9;
         return v >= dlo - BHF_EST_TOL && v <= dhi + BHF_EST_TOL;
+      },
+      /* 答错提示增强：精确模式下输在端点上时给出针对性说明（返回 null 用默认提示） */
+      wrongHint(v, ctx) {
+        if (ctx && ctx.strict && !exact &&
+            (Math.abs(v - dlo) <= 1e-9 || Math.abs(v - dhi) <= 1e-9)) {
+          return `✗ 精确模式：端点不算对（正确范围 ${dlo} ~ ${dhi}）`;
+        }
+        return null;
       },
       promptHTML:
         `${pctStr}% ≈ ` +
