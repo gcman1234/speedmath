@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.11.0';
+const VERSION = '0.11.1';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -305,7 +305,7 @@ function renderInput() {
     slots.forEach((s, i) => {
       s.classList.toggle('confirmed', i < blankStage);
       s.classList.toggle('active', i === blankStage);
-      if (i < blankStage) s.textContent = String(blankValues[i]);
+      if (i < blankStage) s.textContent = blankValues[i] === null ? '—' : String(blankValues[i]);
       else if (i === blankStage) s.textContent = input || '?';
       else s.textContent = '?';
     });
@@ -362,14 +362,24 @@ function submitKeypad() {
   const blanks = current.blanks || 1;
   if (blanks > 1) {
     if (blankStage < blanks - 1) {
-      // 阶段确认：模块校验通过才进入下一空，不通过则留在本空
-      if (!input || input === '-') { flash('先输入第 ' + (blankStage + 1) + ' 个答案'); return; }
-      const v = Number(input);
-      const ok = typeof current.stageCheck === 'function' ? current.stageCheck(blankStage, v) : true;
-      if (!ok) {
-        if (navigator.vibrate) navigator.vibrate(150);
-        flash((typeof current.stageHint === 'function' && current.stageHint(blankStage, v)) || '该值不合法，请重新输入');
+      // 阶段推进：默认不校验、不阻挡，是否合法由模块终审统一判断。
+      // 模块若声明了 stageCheck 才做即时校验（挡在原空）。
+      if (!input || input === '-') {
+        if (typeof current.stageCheck === 'function') { flash('先输入第 ' + (blankStage + 1) + ' 个答案'); return; }
+        blankValues.push(null);            // 留空 = 跳过，终审判负
+        blankStage++;
+        input = '';
+        renderInput();
         return;
+      }
+      const v = Number(input);
+      if (typeof current.stageCheck === 'function') {
+        const ok = current.stageCheck(blankStage, v);
+        if (!ok) {
+          if (navigator.vibrate) navigator.vibrate(150);
+          flash((typeof current.stageHint === 'function' && current.stageHint(blankStage, v)) || '该值不合法，请重新输入');
+          return;
+        }
       }
       blankValues.push(v);
       blankStage++;
@@ -377,9 +387,14 @@ function submitKeypad() {
       renderInput();
       return;
     }
-    // 终审：第二空留空视为 0（跳过）；两值一并交模块判题
+    // 终审：第二空留空视为 0（跳过）；两值一并交模块判题。
+    // 第一空曾留空（null）→ 按未作答判负过题。
     const last = (!input || input === '-') ? 0 : Number(input);
     blankValues.push(last);
+    if (blankValues[0] === null) {
+      answer(false, '');
+      return;
+    }
     const good = typeof current.check === 'function' ? current.check.apply(null, blankValues) : false;
     answer(good, blankValues.join('...'));
     return;

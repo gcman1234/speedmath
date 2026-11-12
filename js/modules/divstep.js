@@ -2,10 +2,11 @@
 
 /* ============================================================
  * 模块：3除2第一步（多空两阶段：第一位商 + 余数）
- * 被除数 a ∈ [100,999]，除数 b ∈ [11,99]。
+ * 被除数 a ∈ [100,999]，除数 b ∈ [11,90]。
  * 位置值 k：a ≥ 10b 时 k=10（第一位商在十位），否则 k=1（个位）。
- * 第一空 q 合法 ⟺ |a − q·k·b| < k·b（严格小于；整除时只有唯一解）。
- * 第二空 r 必须精确等于 a − q·k·b（可负；留空视为 0）。
+ * 第一空不做即时校验，两个空都填完后统一判题：
+ *   判对 ⟺ |a − q·k·b| < k·b（严格小于）且 r 精确等于 a − q·k·b。
+ * 第二空留空视为 0；第一空留空视为跳过（终审判负过题）。
  * ============================================================ */
 
 /* 分式：aaa / bb = (第一空)···(第二空) */
@@ -31,7 +32,7 @@ registerModule({
 
   makeQuestion(ctx) {
     const a = rand(100, 999);
-    const b = rand(11, 99);
+    const b = rand(11, 90);
     const vertical = !ctx || ctx.vertical !== false;   // 默认分式
     const k = a >= 10 * b ? 10 : 1;                    // 位置值：十位或个位
     const qt = Math.floor(a / (k * b));                // 标准第一位商
@@ -43,17 +44,9 @@ registerModule({
       answer: `${qt}...${stdR}`,                      // 答错提示显示
       correctText: `${qt}...${stdR}`,                 // 结算页"正确答案"列
       _a: a, _b: b,                                   // 内部保留，供 rerender 复用
-      /* 第一空校验：|a − q·k·b| < k·b（严格） */
-      stageCheck(stage, v) {
-        if (stage !== 0) return true;
-        return Math.abs(a - v * k * b) < k * b;
-      },
-      stageHint() {
-        return `商得太远：|余数| 应小于 ${k * b}`;
-      },
-      /* 终审：余数必须精确等于 a − q·k·b */
+      /* 终审：第一空合法（|a − q·k·b| < k·b）且余数精确等于 a − q·k·b */
       check(q, r) {
-        return r === a - q * k * b;
+        return Math.abs(a - q * k * b) < k * b && r === a - q * k * b;
       },
       promptHTML: vertical
         ? divstepVerticalHTML(a, b)
