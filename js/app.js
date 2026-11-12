@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.10.2';
+const VERSION = '0.10.3';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象

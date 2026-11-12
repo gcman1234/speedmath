@@ -35,9 +35,9 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 14px;
   position: relative;          /* 作为屏内绝对定位元素（版本号等）的参照物 */
-  padding: 24px 20px;
+  padding: 20px 16px;
   padding-top: calc(24px + env(safe-area-inset-top));
   padding-bottom: calc(24px + env(safe-area-inset-bottom));
   text-align: center;
@@ -46,7 +46,7 @@ html, body {
 .screen.active { display: flex; }
 
 /* 通用文字 */
-h1 { font-size: 30px; letter-spacing: 2px; color: var(--text); }
+h1 { font-size: 26px; letter-spacing: 2px; color: var(--text); }
 h2 { font-size: 22px; }
 .subtitle { font-size: 15px; color: var(--text-light); }
 
@@ -101,11 +101,11 @@ h2 { font-size: 22px; }
 }
 
 .logo {
-  width: 88px; height: 88px;
-  border-radius: 24px;
+  width: 64px; height: 64px;
+  border-radius: 18px;
   background: var(--card);
   color: var(--accent);
-  font-size: 46px;
+  font-size: 34px;
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(51, 85, 58, 0.12);
@@ -113,38 +113,61 @@ h2 { font-size: 22px; }
   transition: transform 0.1s ease;
 }
 .logo:active { transform: scale(0.92) rotate(-3deg); }
+/* 卡片区：一行 3 个；占满剩余高度，模块多了可上下滑动 */
+#screen-modules { justify-content: flex-start; }
 .module-grid {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: start;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* minmax(0,1fr) 允许轨道小于内容最小宽，防止长简介撑破布局 */
+  gap: 10px;
   width: 100%;
-  max-width: 420px;
-  margin-top: 10px;
+  max-width: 460px;
+  margin-top: 8px;
+  padding-bottom: 8px;
 }
 .module-card {
   border: none;
-  border-radius: 18px;
+  border-radius: 14px;
   background: var(--card);
-  box-shadow: 0 4px 14px rgba(51, 85, 58, 0.10);
-  padding: 22px 14px 18px;
+  box-shadow: 0 3px 10px rgba(51, 85, 58, 0.10);
+  padding: 12px 6px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: inherit;
   cursor: pointer;
   transition: transform 0.08s ease;
+  min-width: 0;
 }
 .module-card:active { transform: scale(0.96); }
 .module-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
+  width: 36px; height: 36px;
+  border-radius: 10px;
   background: var(--key);
-  font-size: 28px;
+  font-size: 20px;
   display: flex; align-items: center; justify-content: center;
 }
-.module-name { font-size: 16px; font-weight: 700; }
-.module-desc { font-size: 12px; color: var(--text-light); line-height: 1.5; }
+.module-name {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.module-desc {
+  font-size: 10px;
+  color: var(--text-light);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 
 /* ========== 答题页 ========== */
 #screen-quiz { justify-content: flex-start; }
