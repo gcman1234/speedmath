@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.10.0';
+const VERSION = '0.10.1';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -48,8 +48,11 @@ let strictMode = localStorage.getItem('sm_strict') === '1';
 /* 一次性输入（键盘遮罩；所有键盘型题目可用；状态本地持久化，跨局记住） */
 let oneshot = localStorage.getItem('sm_oneshot') === '1';
 let keypadMasked = false;   // 当前键盘是否处于遮罩状态
-/* 竖式/横式切换（声明了 formatToggle 的模块显示；状态本地持久化，默认竖式） */
-let vsumMode = localStorage.getItem('sm_vsum') !== '0';
+/* 竖式/横式切换（声明了 formatToggle 的模块显示；按模块独立记忆，默认竖式/分式） */
+let vsumMode = true;
+function loadVsum(m) {
+  return localStorage.getItem('sm_vsum_' + (m ? m.id : '')) !== '0';
+}
 /* 模块设置屏状态 */
 let setupModule = null;     // 正在设置中的模块
 let setupValue = 3;         // 当前选中的设置值
@@ -138,6 +141,7 @@ function elapsedSeconds() {
 /* ---------- 开局 / 重开 ---------- */
 function startRound(m) {
   module = m;
+  vsumMode = loadVsum(m);          // 按模块恢复 竖式/横式（分式）偏好
   qIndex = 0;
   correctCount = 0;
   input = '';
@@ -151,8 +155,10 @@ function startRound(m) {
 
 /* ---------- 出题 ---------- */
 function nextQuestion() {
-  // 声明了 setup 的模块收到 ctx = { count, vertical }；其余模块无参（保持兼容）
-  const ctx = module.setup ? { count: module._setupValue, vertical: vsumMode } : undefined;
+  // 声明了 setup 或 formatToggle 的模块收到 ctx = { count, vertical }；其余模块无参（保持兼容）
+  const ctx = (module.setup || module.formatToggle)
+    ? { count: module._setupValue, vertical: vsumMode }
+    : undefined;
   current = module.makeQuestion(ctx);
   renderQuestion();
   $('progress').textContent = `${qIndex + 1} / ${roundTotal}`;
@@ -240,9 +246,12 @@ function renderOneshotBtn() {
   $('btn-oneshot').textContent = oneshot ? '一次性输入·开' : '一次性输入';
   $('btn-oneshot').classList.toggle('on', oneshot);
 }
-/* 竖式/横式：按钮显示当前模式（竖式=绿色实心，横式=描边），点击切换，从下一题起生效 */
+/* 竖式/横式：按钮显示当前模式（开=绿色实心，关=描边），点击立即重排当前题。
+ * 标签可由模块通过 formatToggle.labels 自定义（如 分式/横式），默认 竖式/横式。 */
 function renderFormatBtn() {
-  $('btn-format').textContent = vsumMode ? '竖式' : '横式';
+  const ft = module && module.formatToggle;
+  const labels = (ft && Array.isArray(ft.labels)) ? ft.labels : ['竖式', '横式'];
+  $('btn-format').textContent = vsumMode ? labels[0] : labels[1];
   $('btn-format').classList.toggle('on', vsumMode);
 }
 
@@ -522,9 +531,9 @@ $('keypad-mask').addEventListener('click', () => {                      // 点�
   $('keypad-mask').classList.remove('show');
   keypadMasked = false;
 });
-$('btn-format').addEventListener('click', () => {                       // 竖式/横式切换（跨局记住；当前题立即重排，数字不变）
+$('btn-format').addEventListener('click', () => {                       // 竖式/横式切换（按模块记住；当前题立即重排，数字不变）
   vsumMode = !vsumMode;
-  localStorage.setItem('sm_vsum', vsumMode ? '1' : '0');
+  localStorage.setItem('sm_vsum_' + module.id, vsumMode ? '1' : '0');
   renderFormatBtn();
   if (typeof module.rerender === 'function' && current && current.type !== 'choice') {
     current = module.rerender(current, { count: module._setupValue, vertical: vsumMode });
@@ -621,7 +630,7 @@ $('app-version').textContent = 'v' + VERSION;
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
   if (params.get('count')) localStorage.setItem('sm_setup_' + target.id, params.get('count'));   // 指定设置值
-  if (params.get('hsum')) { vsumMode = false; }                                                  // 横式预览
+  if (params.get('hsum')) localStorage.setItem('sm_vsum_' + target.id, '0');                     // 横式预览
   if (params.get('strict')) { strictMode = true; renderStrictBtn(); }   // 精确模式预览
   if (params.get('oneshot')) { oneshot = true; renderOneshotBtn(); }    // 一次性输入预览
   if (target.setup) {
