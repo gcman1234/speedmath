@@ -14,7 +14,9 @@ train/
 │   ├── app.js            应用外壳（界面调度、两种答题方式、结算）
 │   └── modules/          练习模块（每个模块一个文件，自行注册）
 │       ├── registry.js   模块注册表 + 出题共享工具（rand/pick/shuffle/makeChoiceOptions）
-│       └── addition.js   两位数加法（键盘输入型示例）
+│       ├── multiadd.js   多数相加（设置屏选个数 + 竖式/横式，键盘输入型示例）
+│       ├── baihuafen.js  百化分背诵（查表示例）
+│       └── baihuafen-est.js  百化分估算（精确模式/区间判题示例）
 ├── icons/                应用图标（192 / 512 / maskable）
 ├── scripts/gen-icons.ps1 图标重新生成脚本
 ├── start.bat             【双击这个】启动本地服务
@@ -28,7 +30,7 @@ train/
 2. 在 `index.html` 底部加一行 `<script src="js/modules/xxx.js"></script>`
 3. 在 `sw.js` 的 `ASSETS` 里加一行并升级 `CACHE_NAME` 版本号
 
-模板可参考 `js/modules/addition.js`。
+模板可参考 `js/modules/multiadd.js`（键盘输入型）或 `js/modules/baihuafen.js`（查表型）。
 
 ## 安装到手机（只需做一次）
 

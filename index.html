@@ -45,6 +45,7 @@
         <div class="toggle-col">
           <button class="btn-pill" id="btn-strict" style="display:none">精确模式</button>
           <button class="btn-pill" id="btn-oneshot" style="display:none">一次性输入</button>
+          <button class="btn-pill" id="btn-format" style="display:none">竖式</button>
         </div>
         <button class="round-btn" id="btn-ok">确定</button>
       </div>
@@ -73,6 +74,15 @@
 
       <!-- 四选一型（选择题模块用） -->
       <div class="choices" id="choices"></div>
+    </section>
+
+    <!-- 模块设置页（声明了 setup 的模块先进入此屏，如多数相加选择个数） -->
+    <section id="screen-setup" class="screen">
+      <h2 id="setup-title">练习设置</h2>
+      <p class="subtitle" id="setup-hint"></p>
+      <div class="setup-chips" id="setup-chips"></div>
+      <button class="btn btn-primary" id="btn-setup-start">开始练习</button>
+      <button class="btn btn-secondary" id="btn-setup-back">返回</button>
     </section>
 
     <!-- 结算页（布局还原结算参考图） -->
@@ -112,7 +122,7 @@
   <!-- 模块注册表（必须先加载） -->
   <script src="js/modules/registry.js"></script>
   <!-- 练习模块：新增模块时在下方添加一行 <script src="js/modules/xxx.js"></script> -->
-  <script src="js/modules/addition.js"></script>
+  <script src="js/modules/multiadd.js"></script>
   <script src="js/modules/baihuafen.js"></script>
   <script src="js/modules/baihuafen-est.js"></script>
   <!-- 应用外壳 -->

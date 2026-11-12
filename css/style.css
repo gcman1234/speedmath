@@ -208,6 +208,66 @@ h2 { font-size: 22px; }
 .frac-d { min-height: 1.15em; color: var(--accent); }
 .frac-d .q-slot { color: var(--accent); }
 
+/* 多数相加 · 竖式：数字右对齐堆叠，末行加号 + 横线 + ( ? ) */
+.vsum {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  vertical-align: middle;
+  margin-left: 12px;
+  line-height: 1.28;
+}
+.vs-num {
+  text-align: right;
+  font-size: 0.72em;
+  white-space: nowrap;
+}
+.vsum.compact .vs-num { font-size: 0.55em; }   /* 数字多（≥8）时缩小防溢出 */
+.vs-line { border-top: 3px solid currentColor; margin: 3px 0; }
+.vs-ans {
+  text-align: center;
+  color: var(--accent);
+  font-size: 0.72em;
+  min-height: 1.1em;
+  white-space: nowrap;
+}
+
+/* 多数相加 · 横式：A + B + C = ( ? )，自动换行 */
+.hsum {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 0.52em;
+  line-height: 1.6;
+  white-space: normal;           /* 覆盖 .question 的 nowrap，允许换行 */
+  letter-spacing: 1px;
+}
+.hsum .q-slot { color: var(--accent); }
+
+/* 模块设置页：数字胶囊选择 */
+.setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 320px;
+  margin-top: 8px;
+}
+.chip {
+  width: 58px; height: 58px;
+  border: none;
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 21px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(51, 85, 58, 0.10);
+  transition: transform 0.08s ease;
+}
+.chip.active { background: var(--accent); color: #fff; }
+.chip:active { transform: scale(0.93); }
+
 .feedback {
   height: 26px;
   font-size: 16px;

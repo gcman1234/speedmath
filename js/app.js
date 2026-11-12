@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.9.2';
+const VERSION = '0.9.3';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -48,6 +48,11 @@ let strictMode = localStorage.getItem('sm_strict') === '1';
 /* 一次性输入（键盘遮罩；所有键盘型题目可用；状态本地持久化，跨局记住） */
 let oneshot = localStorage.getItem('sm_oneshot') === '1';
 let keypadMasked = false;   // 当前键盘是否处于遮罩状态
+/* 竖式/横式切换（声明了 formatToggle 的模块显示；状态本地持久化，默认竖式） */
+let vsumMode = localStorage.getItem('sm_vsum') !== '0';
+/* 模块设置屏状态 */
+let setupModule = null;     // 正在设置中的模块
+let setupValue = 3;         // 当前选中的设置值
 
 /* ---------- 界面切换 ---------- */
 function show(id) {
@@ -66,9 +71,39 @@ function renderModules() {
       `<div class="module-icon">${m.icon || '🧮'}</div>` +
       `<div class="module-name">${m.name}</div>` +
       `<div class="module-desc">${m.desc || ''}</div>`;
-    card.addEventListener('click', () => startRound(m));
+    card.addEventListener('click', () => {
+      if (m.setup) openSetup(m);       // 声明了 setup 的模块：先进设置屏
+      else startRound(m);
+    });
     grid.appendChild(card);
   });
+}
+
+/* ---------- 模块设置屏（数字胶囊选择；记住上次选择） ---------- */
+function openSetup(m) {
+  setupModule = m;
+  const s = m.setup;
+  $('setup-title').textContent = s.title || '练习设置';
+  $('setup-hint').textContent = s.hint || '';
+  const persisted = Number(localStorage.getItem('sm_setup_' + m.id));
+  const def = s.def || s.min;
+  setupValue = persisted >= s.min && persisted <= s.max ? persisted : def;
+  m._setupValue = setupValue;          // 保证重开/再来一局沿用
+  renderSetupChips();
+  show('screen-setup');
+}
+
+function renderSetupChips() {
+  const s = setupModule.setup;
+  const box = $('setup-chips');
+  box.innerHTML = '';
+  for (let v = s.min; v <= s.max; v++) {
+    const b = document.createElement('button');
+    b.className = 'chip' + (v === setupValue ? ' active' : '');
+    b.textContent = v;
+    b.addEventListener('click', () => { setupValue = v; renderSetupChips(); });
+    box.appendChild(b);
+  }
 }
 
 /* ---------- 计时 ---------- */
@@ -109,7 +144,9 @@ function startRound(m) {
 
 /* ---------- 出题 ---------- */
 function nextQuestion() {
-  current = module.makeQuestion();
+  // 声明了 setup 的模块收到 ctx = { count, vertical }；其余模块无参（保持兼容）
+  const ctx = module.setup ? { count: module._setupValue, vertical: vsumMode } : undefined;
+  current = module.makeQuestion(ctx);
   renderQuestion();
   $('progress').textContent = `${qIndex + 1} / ${roundTotal}`;
   input = '';
@@ -117,11 +154,12 @@ function nextQuestion() {
   questionStart = Date.now();
 
   if (current.type === 'choice') {
-    // 四选一：显示选项面板，隐藏键盘、"确定"钮与两个开关（选项即答案）
+    // 四选一：显示选项面板，隐藏键盘、"确定"钮与全部开关（选项即答案）
     $('keypad-wrap').style.display = 'none';
     $('btn-ok').style.display = 'none';
     $('btn-strict').style.display = 'none';
     $('btn-oneshot').style.display = 'none';
+    $('btn-format').style.display = 'none';
     keypadMasked = false;
     $('keypad-mask').classList.remove('show');
     const box = $('choices');
@@ -159,6 +197,13 @@ function nextQuestion() {
     // 一次性输入开关：所有键盘型题目都显示
     $('btn-oneshot').style.display = '';
     renderOneshotBtn();
+    // 竖式/横式开关：仅模块声明 formatToggle 时显示
+    if (module.formatToggle) {
+      $('btn-format').style.display = '';
+      renderFormatBtn();
+    } else {
+      $('btn-format').style.display = 'none';
+    }
     updateMask();
   }
 }
@@ -179,6 +224,11 @@ function updateMask() {
 function renderOneshotBtn() {
   $('btn-oneshot').textContent = oneshot ? '一次性输入·开' : '一次性输入';
   $('btn-oneshot').classList.toggle('on', oneshot);
+}
+/* 竖式/横式：按钮显示当前模式（竖式=绿色实心，横式=描边），点击切换，从下一题起生效 */
+function renderFormatBtn() {
+  $('btn-format').textContent = vsumMode ? '竖式' : '横式';
+  $('btn-format').classList.toggle('on', vsumMode);
 }
 
 /* ---------- 精确模式开关 ---------- */
@@ -429,6 +479,22 @@ $('keypad-mask').addEventListener('click', () => {                      // 点�
   $('keypad-mask').classList.remove('show');
   keypadMasked = false;
 });
+$('btn-format').addEventListener('click', () => {                       // 竖式/横式切换（跨局记住；当前题不变，下一题生效）
+  vsumMode = !vsumMode;
+  localStorage.setItem('sm_vsum', vsumMode ? '1' : '0');
+  renderFormatBtn();
+});
+$('btn-setup-start').addEventListener('click', () => {                  // 设置屏：开始练习
+  if (!setupModule) return;
+  localStorage.setItem('sm_setup_' + setupModule.id, String(setupValue));
+  setupModule._setupValue = setupValue;
+  startRound(setupModule);
+});
+$('btn-setup-back').addEventListener('click', () => {                   // 设置屏：返回模块选择
+  setupModule = null;
+  renderModules();
+  show('screen-modules');
+});
 $('btn-ok').addEventListener('click', () => {                           // 右侧圆钮：确定 或 查表
   if (rightBtnMode === 'cheat') openSheet();
   else submitKeypad();
@@ -499,16 +565,24 @@ $('app-version').textContent = 'v' + VERSION;
   });
 })();
 
-// 调试/测试入口：?autostart=<模块id> 直接进入答题（如 ?autostart=addition）
+// 调试/测试入口：?autostart=<模块id> 直接进入答题（如 ?autostart=multiadd）
 // 追加 &autofinish=1 可自动随机作答跑完一局，用于核对结算页样式
 (function () {
   const params = new URLSearchParams(location.search);
   if (params.get('egg')) $('logo').click();   // 彩蛋状态预览（走真实点击逻辑）
   const target = AppModules.find(m => m.id === params.get('autostart'));
   if (!target) return;
-  startRound(target);
+  if (params.get('count')) localStorage.setItem('sm_setup_' + target.id, params.get('count'));   // 指定设置值
+  if (params.get('hsum')) { vsumMode = false; }                                                  // 横式预览
   if (params.get('strict')) { strictMode = true; renderStrictBtn(); }   // 精确模式预览
-  if (params.get('oneshot')) { oneshot = true; renderOneshotBtn(); updateMask(); }   // 一次性输入预览
+  if (params.get('oneshot')) { oneshot = true; renderOneshotBtn(); }    // 一次性输入预览
+  if (target.setup) {
+    openSetup(target);                                                  // 声明 setup 的模块先进设置屏
+    if (params.get('setupgo')) $('btn-setup-start').click();
+    return;
+  }
+  startRound(target);
+  if (params.get('oneshot')) updateMask();
   if (params.get('cheat')) openSheet();   // 查表弹层预览
   if (params.get('autofinish')) {
     const t = setInterval(() => {
