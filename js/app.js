@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.10.3';
+const VERSION = '0.11.0';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -40,6 +40,8 @@ let timerId = null;      // 计时器句柄
 let questionStart = 0;   // 当前题开始时间戳（统计单题用时）
 let input = '';          // 键盘输入缓冲（支持负数与小数）
 let history = [];        // 本局每题记录 { prompt, correct, user, good, secs }
+let blankStage = 0;      // 多空题当前阶段（0 起）
+let blankValues = [];    // 多空题已确认的前几空取值
 let sheetOpen = false;   // 查表弹层是否打开
 let sheetPausedAt = 0;   // 查表暂停开始时间戳
 let rightBtnMode = 'ok'; // 右侧圆钮当前功能：'ok' 确定 | 'cheat' 查表
@@ -160,6 +162,8 @@ function nextQuestion() {
     ? { count: module._setupValue, vertical: vsumMode }
     : undefined;
   current = module.makeQuestion(ctx);
+  blankStage = 0;          // 多空题阶段重置
+  blankValues = [];
   renderQuestion();
   $('progress').textContent = `${qIndex + 1} / ${roundTotal}`;
   input = '';
@@ -288,14 +292,31 @@ function renderQuestion() {
   box.appendChild(ans);
 }
 
-/* ---------- 输入渲染（优先填入题干的 q-slot，否则内联在 "=" 后） ---------- */
+/* ---------- 输入渲染 ----------
+ * 多空题（blanks > 1）：按阶段填充对应 q-slot——已确认的空显示定稿值，
+ * 当前空显示输入中内容（下划线光标），后续空显示占位 "?"。
+ * 单空题：优先填题干 q-slot，否则内联在 "=" 后的 .q-answer。
+ */
 function renderInput() {
-  const slot = $('question').querySelector('.q-slot');
+  const box = $('question');
+  const blanks = current && current.blanks ? current.blanks : 1;
+  if (blanks > 1) {
+    const slots = box.querySelectorAll('.q-slot');
+    slots.forEach((s, i) => {
+      s.classList.toggle('confirmed', i < blankStage);
+      s.classList.toggle('active', i === blankStage);
+      if (i < blankStage) s.textContent = String(blankValues[i]);
+      else if (i === blankStage) s.textContent = input || '?';
+      else s.textContent = '?';
+    });
+    return;
+  }
+  const slot = box.querySelector('.q-slot');
   if (slot) {
     slot.textContent = input || '?';
     return;
   }
-  const ans = $('question').querySelector('.q-answer');
+  const ans = box.querySelector('.q-answer');
   if (ans) ans.textContent = input;
 }
 
@@ -314,7 +335,13 @@ function pressKey(k) {
   } else if (k === 'clear') {
     input = '';
   } else if (k === 'del') {
-    input = input.slice(0, -1);
+    if (input.length > 0) {
+      input = input.slice(0, -1);
+    } else if (current.blanks > 1 && blankStage > 0) {
+      // 多空题：当前空已删光，回退到上一空且原值保留可改（需重新确认）
+      blankStage--;
+      input = String(blankValues.pop());
+    }
   } else if (k === 'ok') {
     submitKeypad();
     return;
@@ -330,6 +357,35 @@ function pressKey(k) {
 function submitKeypad() {
   if (!current || current.type === 'choice') return;
   if (module.puzzle) return;   // 拼图模块由 finishRound 结束，不走提交判题
+
+  /* ----- 多空题（两阶段提交） ----- */
+  const blanks = current.blanks || 1;
+  if (blanks > 1) {
+    if (blankStage < blanks - 1) {
+      // 阶段确认：模块校验通过才进入下一空，不通过则留在本空
+      if (!input || input === '-') { flash('先输入第 ' + (blankStage + 1) + ' 个答案'); return; }
+      const v = Number(input);
+      const ok = typeof current.stageCheck === 'function' ? current.stageCheck(blankStage, v) : true;
+      if (!ok) {
+        if (navigator.vibrate) navigator.vibrate(150);
+        flash((typeof current.stageHint === 'function' && current.stageHint(blankStage, v)) || '该值不合法，请重新输入');
+        return;
+      }
+      blankValues.push(v);
+      blankStage++;
+      input = '';
+      renderInput();
+      return;
+    }
+    // 终审：第二空留空视为 0（跳过）；两值一并交模块判题
+    const last = (!input || input === '-') ? 0 : Number(input);
+    blankValues.push(last);
+    const good = typeof current.check === 'function' ? current.check.apply(null, blankValues) : false;
+    answer(good, blankValues.join('...'));
+    return;
+  }
+
+  /* ----- 单空题 ----- */
   // 空输入（含只输入负号）允许提交：判负并直接进入下一题
   if (!input || input === '-') {
     answer(false, '');
@@ -646,7 +702,15 @@ $('app-version').textContent = 'v' + VERSION;
   if (params.get('autofinish')) {
     const t = setInterval(() => {
       if (!$('screen-quiz').classList.contains('active')) { clearInterval(t); return; }
-      if (Math.random() < 0.25) {
+      if (current.blanks > 1) {
+        // 多空题：随机试第一空（可能被拒，多次尝试必过），再随机填第二空终审
+        pressKey('clear');
+        pressKey(String(Math.floor(Math.random() * 9) + 1));
+        pressKey('ok');
+        pressKey('clear');
+        pressKey(String(Math.floor(Math.random() * 10)));
+        pressKey('ok');
+      } else if (Math.random() < 0.25) {
         pressKey('ok');   // 1/4 概率空输入直接过题（未作答）
       } else {
         pressKey(String(Math.floor(Math.random() * 10)));

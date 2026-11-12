@@ -231,6 +231,16 @@ h2 { font-size: 22px; }
 .frac-d { min-height: 1.15em; color: var(--accent); }
 .frac-d .q-slot { color: var(--accent); }
 
+/* 多空答案槽（如 3除2第一步 的 (?)···(?)） */
+.q-slot {
+  display: inline-block;
+  min-width: 1.2ch;
+  text-align: center;
+  color: var(--accent);
+}
+.q-slot.active { border-bottom: 3px solid var(--accent); }   /* 当前输入空：下划线光标 */
+.q-slot.confirmed { font-weight: 700; }                      /* 已确认空：定稿 */
+
 /* 多数相加 · 竖式：数字右对齐堆叠，末行加号 + 横线 + ( ? ) */
 .vsum {
   display: inline-flex;
