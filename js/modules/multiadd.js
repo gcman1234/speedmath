@@ -49,9 +49,19 @@ registerModule({
       type: 'keypad',
       prompt: `${nums.join(' + ')} =`,   // 结算页纯文本（结尾 = 会被去掉）
       answer: sum,
+      nums: nums,                        // 内部保留数字，供 rerender 切换格式时复用
       promptHTML: vertical
         ? multiaddVerticalHTML(nums)
         : multiaddHorizontalHTML(nums)
     };
+  },
+
+  /* 竖式/横式切换时立即重排当前题：数字不变，只换排版 */
+  rerender(q, ctx) {
+    const vertical = !ctx || ctx.vertical !== false;
+    q.promptHTML = vertical
+      ? multiaddVerticalHTML(q.nums)
+      : multiaddHorizontalHTML(q.nums);
+    return q;
   }
 });

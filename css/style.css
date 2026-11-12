@@ -267,6 +267,47 @@ h2 { font-size: 22px; }
 }
 .chip.active { background: var(--accent); color: #fff; }
 .chip:active { transform: scale(0.93); }
+.chip-text { width: auto; padding: 0 26px; font-size: 18px; }
+
+/* 5×5 数独棋盘 */
+.sd-board {
+  display: inline-grid;
+  grid-template-columns: repeat(5, min(15vw, 62px));
+  grid-auto-rows: min(15vw, 62px);
+  gap: 3px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+.sd-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 4px rgba(51, 85, 58, 0.08);
+}
+/* 五个区域的淡色底纹 */
+.sd-cell.rg0 { background: #f2f9ee; }
+.sd-cell.rg1 { background: #eef7f2; }
+.sd-cell.rg2 { background: #f7f6ea; }
+.sd-cell.rg3 { background: #edf6f7; }
+.sd-cell.rg4 { background: #f6f0f4; }
+.sd-cell.sd-given { color: var(--text); font-weight: 700; }
+.sd-cell.sd-peer { filter: brightness(0.95); }
+.sd-cell.sd-same { background: var(--key); }
+.sd-cell.sd-sel {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+.sd-cell.sd-bad {
+  background: #fde8e8;
+  color: var(--bad);
+}
 
 .feedback {
   height: 26px;

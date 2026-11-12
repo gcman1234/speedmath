@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.9.3';
+const VERSION = '0.10.0';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -85,25 +85,32 @@ function openSetup(m) {
   const s = m.setup;
   $('setup-title').textContent = s.title || '练习设置';
   $('setup-hint').textContent = s.hint || '';
-  const persisted = Number(localStorage.getItem('sm_setup_' + m.id));
-  const def = s.def || s.min;
-  setupValue = persisted >= s.min && persisted <= s.max ? persisted : def;
+  // 选项列表：优先 options（文字），否则 min~max 数字
+  const opts = s.options || rangeSetupOptions(s);
+  const persisted = localStorage.getItem('sm_setup_' + m.id);
+  const hit = opts.find(o => String(o.value) === String(persisted));
+  setupValue = hit ? hit.value : (s.def !== undefined ? s.def : opts[0].value);
   m._setupValue = setupValue;          // 保证重开/再来一局沿用
-  renderSetupChips();
+  renderSetupChips(opts);
   show('screen-setup');
 }
 
-function renderSetupChips() {
-  const s = setupModule.setup;
+function rangeSetupOptions(s) {
+  const list = [];
+  for (let v = s.min; v <= s.max; v++) list.push({ value: v, label: String(v) });
+  return list;
+}
+
+function renderSetupChips(opts) {
   const box = $('setup-chips');
   box.innerHTML = '';
-  for (let v = s.min; v <= s.max; v++) {
+  opts.forEach(o => {
     const b = document.createElement('button');
-    b.className = 'chip' + (v === setupValue ? ' active' : '');
-    b.textContent = v;
-    b.addEventListener('click', () => { setupValue = v; renderSetupChips(); });
+    b.className = 'chip chip-text' + (o.value === setupValue ? ' active' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', () => { setupValue = o.value; renderSetupChips(opts); });
     box.appendChild(b);
-  }
+  });
 }
 
 /* ---------- 计时 ---------- */
@@ -204,6 +211,14 @@ function nextQuestion() {
     } else {
       $('btn-format').style.display = 'none';
     }
+    // 键盘按键过滤：模块声明 keys 时只显示指定按键（如数独的 1~5 + 退格）
+    document.querySelectorAll('#keypad .key').forEach(b => {
+      b.style.display = (!module.keys || module.keys.indexOf(b.dataset.k) >= 0) ? '' : 'none';
+    });
+    // 拼图型模块（数独）：隐藏右侧"确定"圆钮，完成判定由模块通过 finishRound 触发
+    if (module.puzzle) {
+      $('btn-ok').style.display = 'none';
+    }
     updateMask();
   }
 }
@@ -281,6 +296,8 @@ const MAX_LEN = 8;   // 不含负号的最大输入长度
 function pressKey(k) {
   if (!current || current.type === 'choice') return;
   if (keypadMasked) return;   // 遮罩状态：忽略一切按键（含实体键盘）
+  // 模块优先消费按键（如数独的格子输入）：返回 true 表示已处理
+  if (typeof module.onKey === 'function' && module.onKey(k)) return;
 
   if (k === 'sign') {
     // ±：切换开头的负号
@@ -303,6 +320,7 @@ function pressKey(k) {
 
 function submitKeypad() {
   if (!current || current.type === 'choice') return;
+  if (module.puzzle) return;   // 拼图模块由 finishRound 结束，不走提交判题
   // 空输入（含只输入负号）允许提交：判负并直接进入下一题
   if (!input || input === '-') {
     answer(false, '');
@@ -374,6 +392,31 @@ function flash(msg, good) {
   clearTimeout(flashTimer);
   flashTimer = setTimeout(() => fb.classList.remove('show'), 900);
 }
+
+/* ---------- 拼图模块专用：模块宣布完成/放弃 → 进结算 ---------- */
+window.finishRound = function (good) {
+  if (!module || !module.puzzle) return;
+  stopTimer();
+  history.push({
+    prompt: module.name,
+    correct: '完成',
+    user: good ? '完成✓' : '未完成×',
+    good: good === true,
+    secs: (Date.now() - questionStart) / 1000
+  });
+  correctCount = good === true ? 1 : 0;
+  qIndex = 0;
+  roundTotal = 1;
+  endRound();
+};
+
+/* ---------- 模块自定义题面刷新（如数独棋盘变化后重渲染） ---------- */
+window.smRefresh = function () {
+  if (!current || typeof module.boardHTML !== 'function') return;
+  current.promptHTML = module.boardHTML();
+  renderQuestion();
+  renderInput();
+};
 
 /* ---------- 结算 ---------- */
 function endRound() {
@@ -479,10 +522,15 @@ $('keypad-mask').addEventListener('click', () => {                      // 点�
   $('keypad-mask').classList.remove('show');
   keypadMasked = false;
 });
-$('btn-format').addEventListener('click', () => {                       // 竖式/横式切换（跨局记住；当前题不变，下一题生效）
+$('btn-format').addEventListener('click', () => {                       // 竖式/横式切换（跨局记住；当前题立即重排，数字不变）
   vsumMode = !vsumMode;
   localStorage.setItem('sm_vsum', vsumMode ? '1' : '0');
   renderFormatBtn();
+  if (typeof module.rerender === 'function' && current && current.type !== 'choice') {
+    current = module.rerender(current, { count: module._setupValue, vertical: vsumMode });
+    renderQuestion();
+    renderInput();
+  }
 });
 $('btn-setup-start').addEventListener('click', () => {                  // 设置屏：开始练习
   if (!setupModule) return;
@@ -579,11 +627,13 @@ $('app-version').textContent = 'v' + VERSION;
   if (target.setup) {
     openSetup(target);                                                  // 声明 setup 的模块先进设置屏
     if (params.get('setupgo')) $('btn-setup-start').click();
+    if (params.get('autosolve') && typeof target.debugSolve === 'function') target.debugSolve();
     return;
   }
   startRound(target);
   if (params.get('oneshot')) updateMask();
   if (params.get('cheat')) openSheet();   // 查表弹层预览
+  if (params.get('autosolve') && typeof target.debugSolve === 'function') target.debugSolve();   // 拼图自动完成（测试结算页）
   if (params.get('autofinish')) {
     const t = setInterval(() => {
       if (!$('screen-quiz').classList.contains('active')) { clearInterval(t); return; }
