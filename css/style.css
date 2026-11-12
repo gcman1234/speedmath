@@ -254,11 +254,32 @@ h2 { font-size: 22px; }
 
 /* 键盘面板（固定布局，不可拖动） */
 .keypad-wrap {
+  position: relative;         /* 作为遮罩层的定位参照 */
   width: 100%;
   background: var(--panel);
   border-radius: 18px;
   padding: 12px;
 }
+
+/* 一次性输入遮罩：盖住键盘，点击任意处解锁 */
+.keypad-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 2px dashed rgba(51, 85, 58, 0.28);
+  border-radius: 18px;
+  color: var(--text-light);
+  font-size: 16px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  user-select: none;
+}
+.keypad-mask.show { display: flex; }
+.keypad-mask:active { background: var(--key); }
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -352,8 +373,14 @@ h2 { font-size: 22px; }
   color: var(--accent);
 }
 
-/* 精确模式开关（仅声明了 strictMode 的模块显示；夹在两个圆钮中间） */
-.btn-strict {
+/* 开关胶囊（精确模式 / 一次性输入；仅键盘型题目显示，纵列于两圆钮中间） */
+.toggle-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.btn-pill {
   border: 1.5px solid rgba(51, 85, 58, 0.35);
   background: var(--card);
   color: var(--text-light);
@@ -364,14 +391,15 @@ h2 { font-size: 22px; }
   cursor: pointer;
   transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease;
   user-select: none;
+  white-space: nowrap;
 }
-.btn-strict.on {
+.btn-pill.on {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
   font-weight: 700;
 }
-.btn-strict:active { transform: scale(0.93); }
+.btn-pill:active { transform: scale(0.93); }
 
 /* 查表弹层 */
 .sheet-overlay {

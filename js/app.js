@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /* ---------- 版本号（显示在模块选择页右上角） ---------- */
-const VERSION = '0.9.1';
+const VERSION = '0.9.2';
 
 /* ---------- 局内状态 ---------- */
 let module = null;       // 当前模块对象
@@ -45,6 +45,9 @@ let sheetPausedAt = 0;   // 查表暂停开始时间戳
 let rightBtnMode = 'ok'; // 右侧圆钮当前功能：'ok' 确定 | 'cheat' 查表
 /* 精确模式（仅声明了 strictMode 的模块显示开关；状态本地持久化，跨局记住） */
 let strictMode = localStorage.getItem('sm_strict') === '1';
+/* 一次性输入（键盘遮罩；所有键盘型题目可用；状态本地持久化，跨局记住） */
+let oneshot = localStorage.getItem('sm_oneshot') === '1';
+let keypadMasked = false;   // 当前键盘是否处于遮罩状态
 
 /* ---------- 界面切换 ---------- */
 function show(id) {
@@ -114,10 +117,13 @@ function nextQuestion() {
   questionStart = Date.now();
 
   if (current.type === 'choice') {
-    // 四选一：显示选项面板，隐藏键盘、"确定"钮与精确模式开关（选项即答案）
+    // 四选一：显示选项面板，隐藏键盘、"确定"钮与两个开关（选项即答案）
     $('keypad-wrap').style.display = 'none';
     $('btn-ok').style.display = 'none';
     $('btn-strict').style.display = 'none';
+    $('btn-oneshot').style.display = 'none';
+    keypadMasked = false;
+    $('keypad-mask').classList.remove('show');
     const box = $('choices');
     box.style.display = 'grid';
     box.innerHTML = '';
@@ -150,7 +156,29 @@ function nextQuestion() {
     } else {
       $('btn-strict').style.display = 'none';
     }
+    // 一次性输入开关：所有键盘型题目都显示
+    $('btn-oneshot').style.display = '';
+    renderOneshotBtn();
+    updateMask();
   }
+}
+
+/* ---------- 一次性输入（键盘遮罩） ----------
+ * 开启后每题先遮罩键盘，点击面板任意处解锁；
+ * 提交进入下一题后自动恢复遮罩。遮罩时所有按键输入（含实体键盘）被忽略。
+ */
+function updateMask() {
+  if (oneshot && current && current.type !== 'choice') {
+    $('keypad-mask').classList.add('show');
+    keypadMasked = true;
+  } else {
+    $('keypad-mask').classList.remove('show');
+    keypadMasked = false;
+  }
+}
+function renderOneshotBtn() {
+  $('btn-oneshot').textContent = oneshot ? '一次性输入·开' : '一次性输入';
+  $('btn-oneshot').classList.toggle('on', oneshot);
 }
 
 /* ---------- 精确模式开关 ---------- */
@@ -202,6 +230,7 @@ const MAX_LEN = 8;   // 不含负号的最大输入长度
 
 function pressKey(k) {
   if (!current || current.type === 'choice') return;
+  if (keypadMasked) return;   // 遮罩状态：忽略一切按键（含实体键盘）
 
   if (k === 'sign') {
     // ±：切换开头的负号
@@ -390,6 +419,16 @@ $('btn-strict').addEventListener('click', () => {                       // 精�
   localStorage.setItem('sm_strict', strictMode ? '1' : '0');
   renderStrictBtn();
 });
+$('btn-oneshot').addEventListener('click', () => {                      // 一次性输入开关（跨局记住）
+  oneshot = !oneshot;
+  localStorage.setItem('sm_oneshot', oneshot ? '1' : '0');
+  renderOneshotBtn();
+  updateMask();
+});
+$('keypad-mask').addEventListener('click', () => {                      // 点击遮罩任意处解锁（本题内保持解锁）
+  $('keypad-mask').classList.remove('show');
+  keypadMasked = false;
+});
 $('btn-ok').addEventListener('click', () => {                           // 右侧圆钮：确定 或 查表
   if (rightBtnMode === 'cheat') openSheet();
   else submitKeypad();
@@ -469,6 +508,7 @@ $('app-version').textContent = 'v' + VERSION;
   if (!target) return;
   startRound(target);
   if (params.get('strict')) { strictMode = true; renderStrictBtn(); }   // 精确模式预览
+  if (params.get('oneshot')) { oneshot = true; renderOneshotBtn(); updateMask(); }   // 一次性输入预览
   if (params.get('cheat')) openSheet();   // 查表弹层预览
   if (params.get('autofinish')) {
     const t = setInterval(() => {

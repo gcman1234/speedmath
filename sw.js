@@ -6,7 +6,7 @@
  * 手机下次联网打开时会自动更新缓存。
  * ============================================================ */
 
-const CACHE_NAME = 'speedmath-v12';
+const CACHE_NAME = 'speedmath-v13';
 
 const ASSETS = [
   './',

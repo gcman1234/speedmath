@@ -42,13 +42,17 @@
 
       <div class="action-row" id="action-row">
         <button class="round-btn" id="btn-restart">重开</button>
-        <button class="btn-strict" id="btn-strict" style="display:none">精确模式</button>
+        <div class="toggle-col">
+          <button class="btn-pill" id="btn-strict" style="display:none">精确模式</button>
+          <button class="btn-pill" id="btn-oneshot" style="display:none">一次性输入</button>
+        </div>
         <button class="round-btn" id="btn-ok">确定</button>
       </div>
 
       <!-- 键盘输入型：固定键盘面板 -->
       <div class="keypad-wrap" id="keypad-wrap">
-        <div class="keypad">
+        <div class="keypad-mask" id="keypad-mask">点击开始输入答案</div>
+        <div class="keypad" id="keypad">
           <button class="key" data-k="sign">±</button>
           <button class="key" data-k="clear">清空</button>
           <button class="key" data-k="del">退格</button>
